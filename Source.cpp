@@ -22,17 +22,23 @@ struct NoCopyable{
 	};
 };
 
+struct Contain{
+	Contain() {
+		x.construct(3);
+	}
+	LazyConstruction<int> x;
+};
+
 int main() {
 	LazyConstruction<int> v1;
 	v1.construct(1);
 	assert(*v1 == 1);
 	
-	// LazyInit<int> v1_1;
-	// v1_1 = v1;
-	// assert(*v1_1 == 1);
+	LazyConstruction<int> v1_1;
+	// v1_1 = v1; // runtime error : v1_1 is not constructed yet. 
 	
-	// LazyInit<int> v1_2(v1);
-	// assert(*v1_2 == 1);
+	LazyConstruction<int> v1_2(v1);
+	assert(*v1_2 == 1);
 
 	/* ----------------------- */
 
@@ -42,22 +48,20 @@ int main() {
 	*v2 += "s";
 	assert(*v2 == "sss");
 
-	// const LazyInit<std::string> v2_1(v2);
-	// v2_1.construct("sss");
-	// assert(*v2_1 == "sss");
-	// *v2_1 += "s";
+	const LazyConstruction<std::string> v2_1(v2);
+	// v2_1.construct("sss"); // compile error : v2_1 is constant
+	// *v2_1 += "s";          // compile error : *v2_1 is constant
 	
 	LazyConstruction<const std::string> v2_2;
 	v2_2.construct("sss");
 	assert(*v2_2 == "sss");
-	// *v2_2 += "s";
+	// *v2_2 += "s"; // compile error : *v2_2 is constant
 
-	// LazyInit<const std::string> v2_3(v2_2);
-	//v2_3 = v2_2;
-	// assert(*v2_3 == "sss");
-
-	// LazyConstruction<const std::string> v2_4(std::move(v2_2));
-	// assert(*v2_4 == "sss");
+	LazyConstruction<const std::string> v2_3(v2_2);
+	// v2_3 = v2_2;  // compile error : *v2_3 is constant
+	
+	LazyConstruction<const std::string> v2_4(std::move(v2_2));
+	assert(*v2_4 == "sss");
 
 	/* ----------------------- */
 
@@ -65,14 +69,21 @@ int main() {
 	v3.construct(3);
 	assert(v3->i == 3);
 
-	// LazyInit<NoCopyable> v3_1(v3);
-	// LazyConstruction<NoCopyable> v3_1(std::move(v3));
-	// assert(v3_1->i == 3);
+	// LazyConstruction<NoCopyable> v3_1(v3); // compile error : can't copy construction
+	LazyConstruction<NoCopyable> v3_1(std::move(v3));
+	assert(v3_1->i == 3);
 
 	LazyConstruction<NoCopyable> v3_2;
-	// v3_2 = v3_1;
-	// v3_2 = std::move(v3_1);
-	// assert(v3_2->i == 3);
+	// v3_2 = v3_1;            // compile error : can't copy assignment
+	// v3_2 = std::move(v3_1); // runtime error : v3_2 is not constructed yet. 
+
+	/* ------------------------ */
+
+	Contain v4;
+	auto v4_1 = v4;
+	
+	Contain v4_2;
+	v4_2 = v4;
 
 	return 0;
 }
